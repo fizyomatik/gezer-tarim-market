@@ -1,0 +1,125 @@
+'use client'
+
+import { useActionState } from 'react'
+import { handleRegister } from '../actions'
+import { Mail, LockKeyhole, User } from 'lucide-react'
+import Link from 'next/link'
+
+const initialState = { error: '' }
+
+export default function RegisterPage() {
+  const [state, formAction, isPending] = useActionState(handleRegister, initialState)
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8 rounded-2xl bg-white p-8 shadow-sm border border-gray-100">
+        
+        {/* Header Bölümü */}
+        <div className="text-center">
+          <Link href="/" className="inline-block">
+            <h2 className="text-3xl font-black tracking-tight text-[#174d32]">GEZER</h2>
+            <p className="mt-1 text-[10px] font-bold tracking-[0.25em] text-gray-500 uppercase">Tarım Market</p>
+          </Link>
+          <div className="mt-6 flex flex-col items-center">
+            <h3 className="text-xl font-bold text-gray-900">Kayıt Olun</h3>
+            {/* Sizin istediğiniz alt çizgi (underline) efekti */}
+            <div className="mt-1.5 h-1 w-12 rounded-full bg-[#174d32]"></div>
+          </div>
+        </div>
+
+        {/* Inputs ve Form Bölümü */}
+        <form action={formAction} className="mt-8 space-y-4">
+          <div className="space-y-4">
+            
+            {/* Ad Soyad Input */}
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Ad Soyad
+              </label>
+              <div className="relative flex items-center">
+                <div className="absolute left-3 text-gray-400">
+                  <User size={18} />
+                </div>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  placeholder="Ahmet Yılmaz"
+                  className="block w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-3 text-gray-900 placeholder-gray-400 shadow-sm focus:border-[#174d32] focus:outline-none focus:ring-1 focus:ring-[#174d32] sm:text-sm"
+                />
+              </div>
+            </div>
+
+            {/* E-posta Input */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                E-posta Adresi
+              </label>
+              <div className="relative flex items-center">
+                <div className="absolute left-3 text-gray-400">
+                  <Mail size={18} />
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="ornek@eposta.com"
+                  className="block w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-3 text-gray-900 placeholder-gray-400 shadow-sm focus:border-[#174d32] focus:outline-none focus:ring-1 focus:ring-[#174d32] sm:text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Şifre Input */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Şifre
+              </label>
+              <div className="relative flex items-center">
+                <div className="absolute left-3 text-gray-400">
+                  <LockKeyhole size={18} />
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  className="block w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-3 text-gray-900 placeholder-gray-400 shadow-sm focus:border-[#174d32] focus:outline-none focus:ring-1 focus:ring-[#174d32] sm:text-sm"
+                />
+              </div>
+            </div>
+
+          </div>
+
+          {state?.error && (
+            <p className="text-sm font-medium text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100">
+              {state.error}
+            </p>
+          )}
+
+          {/* Kayıt Butonu */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex w-full justify-center rounded-lg bg-[#174d32] px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-[#123d27] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#174d32] disabled:opacity-50"
+            >
+              {isPending ? 'Hesap oluşturuluyor...' : 'Kayıt Ol'}
+            </button>
+          </div>
+        </form>
+
+        {/* Giriş Yap Linki */}
+        <p className="text-center text-sm text-gray-600">
+          Zaten hesabınız var mı?{' '}
+          <Link href="/login" className="font-medium text-[#174d32] hover:underline">
+            Giriş yapın
+          </Link>
+        </p>
+
+      </div>
+    </div>
+  )
+}
