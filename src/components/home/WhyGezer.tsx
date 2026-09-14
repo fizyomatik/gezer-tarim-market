@@ -1,0 +1,5 @@
+import { BadgeCheck, Handshake, Leaf, Truck } from "lucide-react";
+
+const reasons = [{ icon: BadgeCheck, title: "Güvenilir ürün", text: "İhtiyacınıza uygun, seçilmiş ürünler." }, { icon: Handshake, title: "Uzman destek", text: "Karar verirken deneyimli ekibimiz yanınızda." }, { icon: Leaf, title: "Tarımı biliyoruz", text: "Bölgenin ve üreticinin ihtiyacını tanıyoruz." }, { icon: Truck, title: "Hızlı iletişim", text: "WhatsApp üzerinden kolayca bize ulaşın." }];
+
+export default function WhyGezer() { return <section className="bg-white py-20"><div className="mx-auto max-w-7xl px-5 lg:px-8"><div className="max-w-2xl"><span className="text-sm font-bold tracking-[0.2em] text-[#a5c63b]">NEDEN GEZER?</span><h2 className="mt-3 text-3xl font-black text-[#174d32] md:text-4xl">Üretimin yanında, her adımda</h2></div><div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">{reasons.map(({ icon: Icon, title, text }) => <div key={title}><Icon size={28} className="text-[#174d32]" /><h3 className="mt-5 text-lg font-black text-gray-900">{title}</h3><p className="mt-2 leading-7 text-gray-500">{text}</p></div>)}</div></div></section>; }

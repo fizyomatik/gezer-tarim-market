@@ -1,0 +1,6 @@
+import Link from "next/link";
+import { ArrowRight, CheckCircle2, Wrench } from "lucide-react";
+
+export default function ServiceSection() {
+	return <section className="bg-[#174d32] py-20 text-white"><div className="mx-auto grid max-w-7xl gap-12 px-5 lg:grid-cols-[1fr_0.8fr] lg:px-8"><div><span className="text-sm font-bold tracking-[0.2em] text-[#a5c63b]">SERVİS & TAMİR</span><h2 className="mt-4 max-w-xl text-3xl font-black md:text-5xl">Makineniz işinizin kalbi. Biz de onun yanındayız.</h2><p className="mt-6 max-w-xl text-lg leading-8 text-white/70">Tarım makineleri ve ekipmanlarınız için bakım, onarım ve servis desteği sunuyoruz. Sorunu anlatın, çözümü birlikte bulalım.</p><Link href="/service" className="mt-8 inline-flex items-center gap-2 rounded-lg bg-[#a5c63b] px-6 py-3 font-bold text-[#174d32] hover:bg-white">Servis talebi oluştur <ArrowRight size={18} /></Link></div><div className="rounded-2xl border border-white/15 bg-white/5 p-7"><Wrench className="text-[#a5c63b]" size={32} /><div className="mt-8 space-y-5">{["Arıza tespiti ve danışmanlık", "Periyodik bakım ve onarım", "Orijinal ve uyumlu yedek parça"].map((item) => <div key={item} className="flex gap-3"><CheckCircle2 className="shrink-0 text-[#a5c63b]" size={20} /><span className="font-semibold">{item}</span></div>)}</div></div></div></section>;
+}
