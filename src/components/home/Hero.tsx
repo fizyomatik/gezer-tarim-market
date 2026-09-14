@@ -4,16 +4,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, ArrowRight, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { Slide } from "../../lib/catalog";
 
-const slides = [
-  { title: "Tarlanıza güç katacak makineler", text: "Budama, biçme ve bakım işlerinizi kolaylaştıran güvenilir tarım aletlerini keşfedin.", image: "/categories/tarim-aletleri.jpeg", href: "/products?category=tarim-aletleri" },
-  { title: "Verimli bir sezon doğru ürünle başlar", text: "Tohumdan gübreye, bitkinizin ihtiyacına uygun ürünleri uzman desteğiyle seçin.", image: "/categories/tohum.jpg", href: "/products" },
-  { title: "Makineniz için uzman servis", text: "Tarım makinelerinizin bakım ve onarımı için deneyimli ekibimiz yanınızda.", image: "/categories/peyzaj.jpg", href: "/service" },
-];
-
-export default function Hero() {
+export default function Hero({ slides }: { slides: Slide[] }) {
   const [active, setActive] = useState(0);
-  useEffect(() => { const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), 5000); return () => window.clearInterval(timer); }, []);
+  useEffect(() => { const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), 5000); return () => window.clearInterval(timer); }, [slides.length]);
   const slide = slides[active];
   return (
     <section className="relative overflow-hidden bg-[#174d32]">

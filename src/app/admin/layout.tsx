@@ -1,17 +1,10 @@
 import Link from 'next/link';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import { LayoutDashboard, ShoppingCart, Package, Users, LogOut, Settings } from 'lucide-react';
-import { handleLogout } from '../actions'; // 1. WICHTIG: Die Logout-Aktion importieren
+import { handleLogout } from '../actions';
+import { requireAdmin } from '../../lib/auth';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  // Protection Layer: Check if user is an admin
-  const cookieStore = await cookies();
-  const userRole = cookieStore.get('user_role')?.value;
-
-  if (userRole !== 'admin') {
-    redirect('/login'); // Redirect unauthorized users
-  }
+  await requireAdmin();
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -32,6 +25,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </Link>
           <Link href="/admin/products" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#174d32] transition">
             <Package size={18} /> Ürün Yönetimi
+          </Link>
+          <Link href="/admin/slides" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#174d32] transition">
+            <Package size={18} /> Slayt Yönetimi
           </Link>
           <Link href="/admin/orders" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#174d32] transition">
             <ShoppingCart size={18} /> Siparişler

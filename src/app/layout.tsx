@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { CartProvider } from "../components/CartProvider";
 import { CompanySettingsProvider } from "../components/CompanySettingsProvider";
-import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "../lib/supabase/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,8 +23,22 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const cookieStore = await cookies();
-  const isAdmin = cookieStore.get("user_role")?.value === "admin";
+  let userName: string | undefined;
+  let userEmail: string | undefined;
+  let isAdmin = false;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    userName = user?.user_metadata?.full_name;
+    userEmail = user?.email;
+    if (user) {
+      const { data: profile } = await supabase.from("profiles").select("full_name, role").eq("id", user.id).single();
+      userName = profile?.full_name || userName;
+      isAdmin = profile?.role === "admin";
+    }
+  } catch {
+    // The public shell remains renderable before Supabase environment setup.
+  }
   return (
     <html
       lang="tr"
@@ -33,7 +47,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <CompanySettingsProvider>
           <CartProvider>
-          <Navbar isAdmin={isAdmin} />
+          <Navbar isAdmin={isAdmin} userName={userName} userEmail={userEmail} />
           {children}
           <Footer />
           </CartProvider>

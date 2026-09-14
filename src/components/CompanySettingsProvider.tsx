@@ -14,11 +14,11 @@ export type CompanySettings = {
 
 export const defaultCompanySettings: CompanySettings = {
   companyName: "Gezer Tarım Market",
-  address: "Konya, Türkiye",
-  phone: "0555 555 55 55",
+  address: "Adıyaman, Türkiye",
+  phone: "+90 545 490 49 28",
   email: "info@gezertarim.com",
-  whatsapp: "905555555555",
-  hours: "Pazartesi - Cumartesi / 08:00 - 18:00",
+  whatsapp: "+90 5454904928",
+  hours: "Pazartesi - Cumartesi / 08:00 - 19:00",
   mapUrl: "https://maps.google.com",
 };
 

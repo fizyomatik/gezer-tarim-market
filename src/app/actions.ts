@@ -1,104 +1,79 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers' // 1. WICHTIG: Cookies Modul importieren
+import { createSupabaseServerClient } from '../lib/supabase/server'
 
-// Giriş Durumu için Tip Tanımı
 export interface AuthState {
   error: string
 }
 
-// 1. GİRİŞ YAPMA FONKSİYONU (handleLogin)
 export async function handleLogin(prevState: AuthState, formData: FormData): Promise<AuthState> {
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
+  const email = String(formData.get('email') ?? '').trim()
+  const password = String(formData.get('password') ?? '')
 
   if (!email || !password) {
     return { error: 'E-posta ve şifre zorunludur.' }
   }
 
-  let isSuccess = false
-  let userName = ''
-  let userRole = 'customer' // Standardmäßig ist jeder ein normaler Kunde
-
   try {
-    // Örnek mock kontrol:
-    if ((email === 'admin@gezer.com' || email === 'baykara.e41@gmail.com') && password === '123456') {
-      isSuccess = true
-      userName = email === 'baykara.e41@gmail.com' ? 'Baykara Admin' : 'Ahmet Yılmaz'
-      userRole = 'admin' // Wenn es diese E-Mail ist, ändern wir die Rolle zu 'admin'
-    } else {
-      return { error: 'E-posta adresi veya şifre hatalı.' }
-    }
-  } catch (dbError) {
+    const supabase = await createSupabaseServerClient()
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) return { error: 'E-posta adresi veya şifre hatalı.' }
+  } catch {
     return { error: 'Sistemde bir hata oluştu, lütfen tekrar deneyin.' }
   }
 
-  // DIKKAT: redirect() her zaman try-catch bloğunun DIŞINDA çağrılmalıdır!
-  if (isSuccess) {
-    const cookieStore = await cookies()
-    
-    // Zuvor eingebaut: Speichert den Namen für die Navbar (z.B. für den Buchstaben "A")
-    cookieStore.set('user_name', userName, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 30,
-      path: '/'
-    })
-
-    // NEU HIER: Speichert die Rolle ('admin'). Das liest das Admin-Panel aus, um den Zugriff zu erlauben!
-    cookieStore.set('user_role', userRole, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 30, // 30 gün boyunca oturum açık kalır
-      path: '/'
-    })
-
-    // Nach dem Login leiten wir den Admin direkt in sein Admin-Panel weiter
-    if (userRole === 'admin') {
-      redirect('/admin')
-    } else {
-      redirect('/')
-    }
-  }
-
-  return { error: 'Geçersiz kimlik bilgileri.' }
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: profile } = user ? await supabase.from('profiles').select('role').eq('id', user.id).single() : { data: null }
+  redirect(profile?.role === 'admin' ? '/admin' : '/')
 }
 
-// 2. KAYIT OLMA FONKSİYONU (handleRegister)
 export async function handleRegister(prevState: AuthState, formData: FormData): Promise<AuthState> {
-  const name = formData.get('name') as string
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
+  const name = String(formData.get('name') ?? '').trim()
+  const email = String(formData.get('email') ?? '').trim()
+  const password = String(formData.get('password') ?? '')
 
-  if (!name || !email || !password) {
+  if (!name || !email || password.length < 6) {
     return { error: 'Tüm alanların doldurulması zorunludur.' }
   }
 
-  let isSuccess = false
-
   try {
-    isSuccess = true
-  } catch (error) {
+    const supabase = await createSupabaseServerClient()
+    const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } })
+    if (error) return { error: 'Bu e-posta adresi zaten kullanımda olabilir.' }
+  } catch {
     return { error: 'Bu e-posta adresi zaten kullanımda olabilir.' }
   }
 
-  if (isSuccess) {
-    redirect('/login')
-  }
-
-  return { error: 'Kayıt işlemi başarısız oldu.' }
+  redirect('/login?registered=1')
 }
 
-// 3. ÇIKIŞ YAPMA FONKSİYONU (handleLogout)
 export async function handleLogout() {
-  const cookieStore = await cookies()
-  
-  // Çerezleri sil
-  cookieStore.delete('user_name')
-  cookieStore.delete('user_role')
-  
-  // Giriş sayfasına yönlendir
+  const supabase = await createSupabaseServerClient()
+  await supabase.auth.signOut()
   redirect('/login')
+}
+
+export async function updateProfile(formData: FormData): Promise<AuthState> {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const fullName = String(formData.get('name') ?? '').trim()
+  const address = String(formData.get('address') ?? '').trim()
+  const { error } = await supabase.from('profiles').update({ full_name: fullName, address, updated_at: new Date().toISOString() }).eq('id', user.id)
+  return { error: error?.message ?? '' }
+}
+
+export async function updatePassword(formData: FormData): Promise<AuthState> {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const password = String(formData.get('password') ?? '')
+  if (password.length < 6) return { error: 'Şifre en az 6 karakter olmalıdır.' }
+  const { error } = await supabase.auth.updateUser({ password })
+  return { error: error?.message ?? '' }
 }
 

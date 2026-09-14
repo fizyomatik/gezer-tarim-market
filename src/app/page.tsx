@@ -4,9 +4,11 @@ import FeaturedProducts from "../components/home/FeaturedProducts";
 import ServiceSection from "../components/home/ServiceSection";
 import ContactSection from "../components/home/ContactSection";
 import WhyGezer from "../components/home/WhyGezer";
+import { getActiveSlides } from "../lib/catalog";
 
-export default function Home() {
+export default async function Home() {
+  const slides = await getActiveSlides();
   return (
-    <main><Hero /><Categories /><FeaturedProducts /><ServiceSection /><WhyGezer /><ContactSection /></main>
+    <main><Hero slides={slides} /><Categories /><FeaturedProducts /><ServiceSection /><WhyGezer /><ContactSection /></main>
   );
 }
