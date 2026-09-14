@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, startTransition, useContext, useEffect, useState } from "react";
 
 export type CompanySettings = {
   companyName: string;
@@ -28,11 +28,25 @@ const CompanySettingsContext = createContext<{
 } | null>(null);
 
 export function CompanySettingsProvider({ children }: { children: React.ReactNode }) {
-  const [settings, setSettings] = useState<CompanySettings>(() => {
-    if (typeof window === "undefined") return defaultCompanySettings;
+  const [settings, setSettings] = useState<CompanySettings>(defaultCompanySettings);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
     const saved = window.localStorage.getItem("gezer-company-settings");
-    return saved ? { ...defaultCompanySettings, ...JSON.parse(saved) } : defaultCompanySettings;
-  });
+    if (saved) {
+      try {
+        const restoredSettings = { ...defaultCompanySettings, ...JSON.parse(saved) };
+        startTransition(() => setSettings(restoredSettings));
+      } catch {
+        window.localStorage.removeItem("gezer-company-settings");
+      }
+    }
+    startTransition(() => setHydrated(true));
+  }, []);
+
+  useEffect(() => {
+    if (hydrated) window.localStorage.setItem("gezer-company-settings", JSON.stringify(settings));
+  }, [hydrated, settings]);
 
   const saveSettings = (nextSettings: CompanySettings) => {
     setSettings(nextSettings);

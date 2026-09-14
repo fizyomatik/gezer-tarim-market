@@ -55,7 +55,7 @@ export async function handleLogout() {
   redirect('/login')
 }
 
-export async function updateProfile(formData: FormData): Promise<AuthState> {
+export async function updateProfile(formData: FormData): Promise<void> {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -63,17 +63,17 @@ export async function updateProfile(formData: FormData): Promise<AuthState> {
   const fullName = String(formData.get('name') ?? '').trim()
   const address = String(formData.get('address') ?? '').trim()
   const { error } = await supabase.from('profiles').update({ full_name: fullName, address, updated_at: new Date().toISOString() }).eq('id', user.id)
-  return { error: error?.message ?? '' }
+  if (error) throw new Error(error.message)
 }
 
-export async function updatePassword(formData: FormData): Promise<AuthState> {
+export async function updatePassword(formData: FormData): Promise<void> {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const password = String(formData.get('password') ?? '')
-  if (password.length < 6) return { error: 'Şifre en az 6 karakter olmalıdır.' }
+  if (password.length < 6) throw new Error('Şifre en az 6 karakter olmalıdır.')
   const { error } = await supabase.auth.updateUser({ password })
-  return { error: error?.message ?? '' }
+  if (error) throw new Error(error.message)
 }
 
