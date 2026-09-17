@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Check, MessageCircle, ShoppingBag } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Product } from "../../data/products";
 import { formatPrice } from "../../data/products";
 import { useCart } from "../CartProvider";
@@ -12,7 +12,14 @@ import WhatsAppLink from "../WhatsAppLink";
 export default function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
-  const handleAdd = () => { addItem(product); setAdded(true); window.setTimeout(() => setAdded(false), 1400); };
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  const handleAdd = () => {
+    addItem(product);
+    setAdded(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setAdded(false), 1400);
+  };
   return (
     <article className="group overflow-hidden rounded-2xl border border-gray-200 bg-white">
       <Link href={`/products/${product.slug}`} className="block aspect-[4/3] overflow-hidden bg-gray-100"><Image src={product.image} alt={product.name} width={640} height={480} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /></Link>

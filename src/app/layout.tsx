@@ -1,3 +1,4 @@
+import { getCompanySettings } from "../lib/settings";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const settings = await getCompanySettings();
   let userName: string | undefined;
   let userEmail: string | undefined;
   let isAdmin = false;
@@ -37,16 +39,15 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       isAdmin = profile?.role === "admin";
     }
   } catch {
-    // The public shell remains renderable before Supabase environment setup.
+    // Public visitors can still browse if only the authentication service is unavailable.
   }
   return (
     <html
       lang="tr"
-      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <CompanySettingsProvider>
+        <CompanySettingsProvider settings={settings}>
           <CartProvider>
           <Navbar isAdmin={isAdmin} userName={userName} userEmail={userEmail} />
           {children}

@@ -2,42 +2,72 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { createSupabaseBrowserClient } from '../../../lib/supabase/client';
+import { useRouter } from 'next/navigation';
+import { validateImages } from '../../../lib/validation';
+import { uploadImages } from '../../../lib/upload';
+import { abandonUploads } from '../media-actions';
 import { createSlide, deleteSlide, toggleSlide } from './actions';
 
 type AdminSlide = { id: string; title: string; text: string; href: string; image: string; sortOrder: number; isActive: boolean };
 
 export default function AdminSlidesClient({ initialSlides }: { initialSlides: AdminSlide[] }) {
-  const [slides, setSlides] = useState(initialSlides);
+  const router = useRouter();
   const [message, setMessage] = useState('');
+  const [pending, setPending] = useState(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
     const form = event.currentTarget;
     const data = new FormData(form);
-    const file = (form.elements.namedItem('photo') as HTMLInputElement).files?.[0];
-    if (!file) { setMessage('Görsel seçin.'); return; }
-    const path = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
-    const supabase = createSupabaseBrowserClient();
-    const upload = await supabase.storage.from('site-media').upload(path, file, { upsert: false });
-    if (upload.error) { setMessage(upload.error.message); return; }
-    data.set('imagePath', path);
-    const result = await createSlide(data);
-    setMessage(result.error || 'Slayt eklendi.');
-    if (!result.error) { form.reset(); window.location.reload(); }
+    const file = data.get('photo');
+    if (!(file instanceof File) || !file.size) { setMessage('Görsel seçin.'); return; }
+    const validation = validateImages([file]);
+    if (validation) { setMessage(validation); return; }
+    data.delete('photo');
+    setPending(true);
+    try {
+      const paths = await uploadImages('site-media', [file]);
+      data.set('imagePath', paths[0]);
+      const result = await createSlide(data);
+      if (result.error) { await abandonUploads('site-media', paths).catch(() => undefined); setMessage(result.error); return; }
+      form.reset();
+      setMessage('Slayt eklendi.');
+      router.refresh();
+    } catch { setMessage('İşlem tamamlanamadı. Sayfayı yenileyip slayt listesini kontrol edin.'); }
+    finally { setPending(false); }
   }
 
-  async function setActive(slide: AdminSlide) {
-    const result = await toggleSlide(slide.id, !slide.isActive);
-    if (result.error) { setMessage(result.error); return; }
-    setSlides((current) => current.map((item) => item.id === slide.id ? { ...item, isActive: !item.isActive } : item));
+  async function change(slide: AdminSlide, remove: boolean) {
+    if (pending || (remove && !window.confirm('Bu slaytı silmek istiyor musunuz?'))) return;
+    setPending(true);
+    try {
+      const result = remove ? await deleteSlide(slide.id) : await toggleSlide(slide.id, !slide.isActive);
+      setMessage(result.error || 'Slayt güncellendi.');
+      if (!result.error) router.refresh();
+    } catch { setMessage('İşlem tamamlanamadı. Lütfen tekrar deneyin.'); }
+    finally { setPending(false); }
   }
 
-  async function remove(id: string) {
-    const result = await deleteSlide(id);
-    if (result.error) { setMessage(result.error); return; }
-    setSlides((current) => current.filter((slide) => slide.id !== id));
-  }
-
-  return <div className="space-y-8"><div><p className="text-sm font-bold uppercase tracking-[0.15em] text-[#a5c63b]">Ana sayfa</p><h1 className="mt-2 text-3xl font-black text-[#174d32]">Slayt yönetimi</h1></div><form onSubmit={submit} className="grid gap-4 rounded-xl border border-gray-100 bg-white p-6 shadow-sm"><input name="title" required placeholder="Başlık" className="rounded-lg border border-gray-200 px-3 py-2.5" /><textarea name="text" placeholder="Açıklama" className="min-h-24 rounded-lg border border-gray-200 px-3 py-2.5" /><input name="href" defaultValue="/products" placeholder="Bağlantı" className="rounded-lg border border-gray-200 px-3 py-2.5" /><input name="photo" required type="file" accept="image/*" className="rounded-lg border border-gray-200 px-3 py-2.5" /><button className="rounded-lg bg-[#174d32] px-5 py-3 font-bold text-white">Slayt ekle</button>{message && <p className="text-sm text-[#174d32]">{message}</p>}</form><div className="grid gap-4">{slides.map((slide) => <article key={slide.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm"><Image src={slide.image} alt="" width={160} height={90} className="h-20 w-32 rounded-lg object-cover" /><div className="min-w-48 flex-1"><h2 className="font-bold text-[#174d32]">{slide.title}</h2><p className="text-sm text-gray-500">{slide.isActive ? 'Yayında' : 'Pasif'}</p></div><button onClick={() => setActive(slide)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold">{slide.isActive ? 'Pasifleştir' : 'Yayınla'}</button><button onClick={() => remove(slide.id)} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600">Sil</button></article>)}</div></div>;
+  const input = 'w-full rounded-lg border border-gray-300 px-3 py-2.5';
+  return <div className="space-y-8">
+    <h1 className="text-3xl font-black text-[#174d32]">Slayt yönetimi</h1>
+    <form onSubmit={submit} className="rounded-xl border bg-white p-6">
+      <fieldset disabled={pending} className="grid gap-4">
+        <label>Başlık<input className={input} name="title" required maxLength={200} /></label>
+        <label>Açıklama<textarea className={input} name="text" maxLength={2000} /></label>
+        <label>Site içi bağlantı<input className={input} name="href" required defaultValue="/products" /></label>
+        <label>Görsel (JPG, PNG, WEBP; en fazla 10 MB)<input className={input} name="photo" required type="file" accept="image/jpeg,image/png,image/webp" /></label>
+        <button className="rounded-lg bg-[#174d32] px-5 py-3 font-bold text-white">{pending ? 'Kaydediliyor…' : 'Slayt ekle'}</button>
+      </fieldset>
+    </form>
+    {message && <p role="status">{message}</p>}
+    {!initialSlides.length && <p>Henüz slayt eklenmedi.</p>}
+    <div className="grid gap-4">{initialSlides.map((slide) => <article key={slide.id} className="flex flex-wrap items-center gap-4 rounded-xl border bg-white p-4">
+      <Image src={slide.image} alt={slide.title} width={160} height={90} className="h-20 w-32 rounded-lg object-cover" />
+      <div className="min-w-48 flex-1"><h2 className="font-bold">{slide.title}</h2><p>{slide.isActive ? 'Yayında' : 'Pasif'}</p></div>
+      <button disabled={pending} onClick={() => change(slide, false)}>{slide.isActive ? 'Pasifleştir' : 'Yayınla'}</button>
+      <button disabled={pending} onClick={() => change(slide, true)} className="text-red-700">Sil</button>
+    </article>)}</div>
+  </div>;
 }

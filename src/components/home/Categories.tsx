@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const categories = [
@@ -68,8 +69,11 @@ export default function Categories() {
             >
               {/* Görsel */}
               <div className="aspect-[4/3] overflow-hidden bg-gray-100">
-                <img
+                <Image
                   src={category.image}
+                  width={640}
+                  height={480}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
                   alt={category.name}
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                 />

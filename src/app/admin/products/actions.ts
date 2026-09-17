@@ -2,48 +2,37 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '../../../lib/auth';
+import { drainStorageCleanup } from '../../../lib/storage';
+import { isUuid, validateProduct } from '../../../lib/validation';
 
 type ProductState = { error: string };
 
-function slugify(value: string) {
-  return value.toLocaleLowerCase('tr-TR').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/ı/g, 'i').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+async function saveProduct(productId: string | null, formData: FormData): Promise<ProductState> {
+  const { supabase } = await requireAdmin();
+  const parsed = validateProduct(formData);
+  if (parsed.error) return { error: parsed.error };
+  if (productId !== null && !isUuid(productId)) return { error: 'Geçersiz ürün.' };
+  const { error } = await supabase.rpc('save_product', { product_id: productId, ...parsed.value });
+  if (error) return { error: 'Ürün kaydedilemedi. Bilgileri kontrol edip tekrar deneyin.' };
+  revalidatePath('/', 'layout');
+  return { error: '' };
 }
 
 export async function createProduct(formData: FormData): Promise<ProductState> {
-  const { supabase } = await requireAdmin();
-  const name = String(formData.get('name') ?? '').trim();
-  const brand = String(formData.get('brand') ?? '').trim();
-  const description = String(formData.get('description') ?? '').trim();
-  const categorySlug = String(formData.get('categorySlug') ?? '');
-  const price = Number(formData.get('price'));
-  const imagePaths = formData.getAll('imagePath').map(String);
-  if (!name || !categorySlug || !Number.isFinite(price) || price < 0) return { error: 'Ürün adı, kategori ve geçerli fiyat zorunludur.' };
-  const { data: category } = await supabase.from('categories').select('id').eq('slug', categorySlug).single();
-  if (!category) return { error: 'Kategori bulunamadı.' };
-  const { data: product, error } = await supabase.from('products').insert({ name, slug: `${slugify(name)}-${Date.now()}`, brand, description, price, category_id: category.id, is_featured: formData.get('featured') === 'true' }).select('id').single();
-  if (error || !product) return { error: error?.message ?? 'Ürün oluşturulamadı.' };
-  if (imagePaths.length) await supabase.from('product_images').insert(imagePaths.map((storage_path, sort_order) => ({ product_id: product.id, storage_path, sort_order })));
-  revalidatePath('/'); revalidatePath('/products'); revalidatePath('/admin/products');
-  return { error: '' };
+  return saveProduct(null, formData);
+}
+
+export async function updateProduct(productId: string, formData: FormData): Promise<ProductState> {
+  return saveProduct(productId, formData);
 }
 
 export async function deleteProduct(productId: string): Promise<ProductState> {
   const { supabase } = await requireAdmin();
+  if (!isUuid(productId)) return { error: 'Geçersiz ürün.' };
   const { error } = await supabase.from('products').delete().eq('id', productId);
-  if (error) return { error: error.message };
-  revalidatePath('/'); revalidatePath('/products'); revalidatePath('/admin/products');
-  return { error: '' };
-}
-
-export async function updateProduct(productId: string, formData: FormData): Promise<ProductState> {
-  const { supabase } = await requireAdmin();
-  const { error } = await supabase.from('products').update({ name: String(formData.get('name') ?? '').trim(), brand: String(formData.get('brand') ?? '').trim(), description: String(formData.get('description') ?? '').trim(), price: Number(formData.get('price')), updated_at: new Date().toISOString() }).eq('id', productId);
-  if (error) return { error: error.message };
-  const imagePaths = formData.getAll('imagePath').map(String);
-  if (imagePaths.length) {
-    const { data: last } = await supabase.from('product_images').select('sort_order').eq('product_id', productId).order('sort_order', { ascending: false }).limit(1).maybeSingle();
-    await supabase.from('product_images').insert(imagePaths.map((storage_path, index) => ({ product_id: productId, storage_path, sort_order: (last?.sort_order ?? -1) + index + 1 })));
-  }
-  revalidatePath('/'); revalidatePath('/products'); revalidatePath('/admin/products');
+  if (error) return { error: 'Ürün silinemedi. Lütfen tekrar deneyin.' };
+  // The delete trigger enqueues files in the same database transaction.
+  await drainStorageCleanup(supabase).catch(() => undefined);
+  revalidatePath('/', 'layout');
   return { error: '' };
 }

@@ -1,15 +1,17 @@
 import Link from 'next/link';
-import { LayoutDashboard, ShoppingCart, Package, Users, LogOut, Settings } from 'lucide-react';
+import { LayoutDashboard, Package, LogOut, Settings } from 'lucide-react';
 import { handleLogout } from '../actions';
+import { drainStorageCleanup } from '../../lib/storage';
 import { requireAdmin } from '../../lib/auth';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  await requireAdmin();
+  const { supabase } = await requireAdmin();
+  await drainStorageCleanup(supabase).catch(() => undefined);
 
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-gray-200 bg-white">
+      <aside className="relative z-20 hidden w-64 shrink-0 md:flex flex-col border-r border-gray-200 bg-white">
         {/* Sidebar Header */}
         <div className="flex h-20 items-center px-6 border-b border-gray-100">
           <Link href="/admin" className="flex flex-col leading-none">
@@ -29,12 +31,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/slides" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#174d32] transition">
             <Package size={18} /> Slayt Yönetimi
           </Link>
-          <Link href="/admin/orders" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#174d32] transition">
-            <ShoppingCart size={18} /> Siparişler
-          </Link>
-          <Link href="/admin/users" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#174d32] transition">
-            <Users size={18} /> Kullanıcılar
-          </Link>
           <Link href="/admin/settings" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#174d32] transition">
             <Settings size={18} /> Firma Ayarları
           </Link>
@@ -42,7 +38,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
         {/* Sidebar Footer / Logout */}
         <div className="border-t border-gray-100 p-4">
-          {/* 2. ERSETZT: Button in ein Formular mit Server Action gebunden */}
           <form action={handleLogout}>
             <button 
               type="submit"
@@ -55,7 +50,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </aside>
 
       {/* Main Content Area */}
-      <div className="pl-64 w-full flex flex-col">
+      <div className="min-w-0 w-full flex flex-col">
         {/* Top Header */}
         <header className="flex h-20 items-center justify-between border-b border-gray-200 bg-white px-8">
           <h1 className="text-lg font-bold text-gray-800">Hoş geldiniz, Admin 👋</h1>
@@ -65,7 +60,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </header>
 
         {/* Dynamic Page Content */}
-        <main className="p-8 flex-1">{children}</main>
+        <nav className="flex flex-wrap gap-4 p-4 md:hidden" aria-label="Yönetim"><Link href="/admin">Panel</Link><Link href="/admin/products">Ürünler</Link><Link href="/admin/slides">Slaytlar</Link><Link href="/admin/settings">Ayarlar</Link></nav>
+        <main className="p-4 md:p-8 flex-1">{children}</main>
       </div>
     </div>
   );
