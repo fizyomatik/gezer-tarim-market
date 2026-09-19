@@ -5,7 +5,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { CartProvider } from "../components/CartProvider";
 import { CompanySettingsProvider } from "../components/CompanySettingsProvider";
 import { createSupabaseServerClient } from "../lib/supabase/server";
 
@@ -49,11 +48,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <CompanySettingsProvider settings={settings}>
-          <CartProvider>
           <Navbar isAdmin={isAdmin} userName={userName} userEmail={userEmail} categories={categories} />
           {children}
           <Footer categories={categories} />
-          </CartProvider>
         </CompanySettingsProvider>
         </body>
     </html>

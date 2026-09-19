@@ -17,8 +17,16 @@ test('public catalog, category filtering, old account URLs and admin protection'
   }
 });
 
+test('retired cart URL redirects to the public catalog', async ({ page }) => {
+  await page.goto('/cart');
+  await expect(page).toHaveURL(/\/products$/);
+  await expect(page.getByRole('button', { name: /listeye ekle/ })).toHaveCount(0);
+});
+
 test('mobile navigation and shared contact links', async ({ page, isMobile }) => {
   await page.goto('/contact');
+  await expect(page.locator('header').getByRole('link', { name: 'Yönetici girişi', exact: true })).toBeVisible();
+  await expect(page.locator('a[href="/cart"]')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Haritada aç' })).toHaveAttribute('href', /^https:\/\//);
   await expect(page.locator('main a[href^="tel:"]')).toBeVisible();
   await expect(page.locator('main a[href^="mailto:"]')).toBeVisible();
@@ -76,13 +84,10 @@ test('admin changes reach anonymous visitors; media, inquiries and category rest
     await publicPage.getByRole('button', { name: 'Filtrele' }).click();
     const card = publicPage.locator('article').filter({ hasText: product });
     await expect(card).toContainText('Fiyat için iletişime geçin');
-    await card.getByRole('button', { name: `${product} listeye ekle` }).click();
-    await publicPage.goto('/cart');
-    await expect(publicPage.locator('main')).toContainText(product);
-    await expect(publicPage.locator('main')).not.toContainText('Tahmini toplam');
-    await publicPage.reload();
-    await expect(publicPage.locator('main')).toContainText(product);
-    await expect(publicPage.locator('main a[href^="https://wa.me/"]')).toHaveAttribute('href', /products/);
+    await expect(card.getByRole('button', { name: /listeye ekle/ })).toHaveCount(0);
+    const inquiry = card.getByRole('link', { name: 'WhatsApp ile bilgi al' });
+    await expect(inquiry).toHaveAttribute('href', /^https:\/\/wa.me\//);
+    expect(new URL((await inquiry.getAttribute('href'))!).searchParams.get('text')).toContain(product);
     await publicPage.goto('/products');
     await publicPage.getByRole('link', { name: product, exact: true }).click();
     await expect(publicPage.getByRole('button', { name: '2. görseli göster' })).toBeVisible();

@@ -3,24 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
-import { cartTotal, cartCount, cartMessage, restoreCart } from '../src/lib/cart.ts';
 import { validateImages, validateProduct, isInternalLink, MAX_IMAGE_BYTES } from '../src/lib/validation.ts';
 import { validateCompanySettings } from '../src/lib/company-settings.ts';
 import { drainStorageCleanup } from '../src/lib/storage.ts';
 
-const product = { id: 'p', slug: 'p', name: 'Tohum', category: 'Tohum', categorySlug: 'tohum', brand: '', description: '', image: '/seed.jpg', price: 0.1, quantity: 3 };
-test('cart totals, badge and inquiry all account for quantities without floating-point drift', () => {
-  const items = [product, { ...product, id: 'q', name: 'Gübre', price: 0.2, quantity: 2 }];
-  assert.equal(cartTotal(items), 0.7);
-  assert.equal(cartCount(items), 5);
-  assert.match(cartMessage(items), /Tohum \(3 adet\)[\s\S]*Gübre \(2 adet\)/);
-});
-test('corrupt or invalid persisted carts do not crash or introduce negative quantities', () => {
-  for (const raw of ['{', '{}', 'null', JSON.stringify([{ ...product, quantity: -1 }]), JSON.stringify([{ ...product, price: '100' }])]) {
-    assert.deepEqual(restoreCart(raw), []);
-  }
-  assert.equal(restoreCart(JSON.stringify([{ ...product, quantity: undefined }]))[0].quantity, 1);
-});
 test('uploads reject SVG, oversized files and excessive counts before network activity', () => {
   assert.equal(validateImages([{ type: 'image/png', size: MAX_IMAGE_BYTES }]), '');
   for (const files of [[{ type: 'image/svg+xml', size: 100 }], [{ type: 'image/png', size: MAX_IMAGE_BYTES + 1 }], Array(11).fill({ type: 'image/jpeg', size: 10 })]) assert.ok(validateImages(files));
@@ -93,13 +79,6 @@ test('proxy invokes auth refresh and forwards refreshed cookies to both renderin
 });
 
 
-test('optional prices remain unknown, while zero is a valid price', () => {
-  const unpriced = { ...product, price: null };
-  assert.equal(cartTotal([unpriced, product]), null);
-  assert.equal(cartTotal([{ ...product, price: 0 }]), 0);
-  assert.equal(restoreCart(JSON.stringify([unpriced]))[0].price, null);
-  assert.match(cartMessage([product], 'https://shop.example'), /https:\/\/shop.example\/products\/p/);
-});
 test('site-media cleanup checks both slides and categories before removing a file', async () => {
   const client = storageMock();
   client.rpc = async () => ({ data: [{ bucket: 'site-media', path: 'category.jpg' }], error: null });
@@ -110,4 +89,38 @@ test('site-media cleanup checks both slides and categories before removing a fil
   await drainStorageCleanup(client);
   assert.deepEqual(client.removed, []);
   assert.equal(client.cleared.length, 1);
+});
+
+test('login admits admins and signs out non-admin or unverifiable profiles', async () => {
+  const source = readFileSync(new URL('../src/app/actions.ts', import.meta.url), 'utf8');
+  const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  for (const scenario of ['admin', 'customer', 'missing-profile', 'profile-error', 'invalid-password']) {
+    let signedOut = false;
+    const exports = {};
+    const client = {
+      auth: {
+        signInWithPassword: async () => ({ data: { user: scenario === 'invalid-password' ? null : { id: 'user' } }, error: scenario === 'invalid-password' ? {} : null }),
+        signOut: async () => { signedOut = true; return { error: null }; },
+      },
+      from: () => ({ select: () => ({ eq: () => ({ single: async () => ({
+        data: scenario === 'missing-profile' ? null : { role: scenario === 'customer' ? 'customer' : 'admin' },
+        error: scenario === 'profile-error' ? {} : null,
+      }) }) }) }),
+    };
+    const imports = {
+      'next/navigation': { redirect: (path) => { throw new Error(`redirect:${path}`); } },
+      '../lib/supabase/server': { createSupabaseServerClient: async () => client },
+    };
+    vm.runInNewContext(output, { exports, require: (name) => { assert.ok(imports[name], name); return imports[name]; } });
+    const form = new FormData();
+    form.set('email', 'admin@example.test'); form.set('password', 'test-password');
+    if (scenario === 'admin') {
+      await assert.rejects(exports.handleLogin({}, form), /redirect:\/admin/);
+      assert.equal(signedOut, false);
+    } else {
+      const result = await exports.handleLogin({}, form);
+      assert.equal(result.error, scenario === 'invalid-password' ? 'E-posta adresi veya şifre hatalı.' : 'Bu giriş yalnızca yöneticiler içindir.');
+      assert.equal(signedOut, scenario !== 'invalid-password');
+    }
+  }
 });
