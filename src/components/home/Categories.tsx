@@ -1,40 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 
-const categories = [
-  {
-    name: "Tohum",
-    slug: "tohum",
-    description: "Kaliteli ve verimli tohum çeşitleri",
-    image: "/categories/tohum.jpg",
-  },
-  {
-    name: "Gübre",
-    slug: "gubre",
-    description: "Bitkinizin ihtiyacına uygun gübreler",
-    image: "/categories/gubre.jpeg",
-  },
-  {
-    name: "Zirai İlaç",
-    slug: "zirai-ilac",
-    description: "Bitki sağlığı ve koruma ürünleri",
-    image: "/categories/zirai-ilac.jpg",
-  },
-  {
-    name: "Tarım Aletleri",
-    slug: "tarim-aletleri",
-    description: "Tarım işleriniz için profesyonel ekipmanlar",
-    image: "/categories/tarim-aletleri.jpeg",
-  },
-  {
-    name: "Peyzaj",
-    slug: "peyzaj",
-    description: "Bahçe ve peyzaj ürünleri",
-    image: "/categories/peyzaj.jpg",
-  },
-];
+import { getCategories } from '../../lib/catalog';
 
-export default function Categories() {
+export default async function Categories() {
+  const categories = await getCategories();
   return (
     <section className="bg-white py-20">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">

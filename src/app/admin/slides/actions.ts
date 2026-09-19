@@ -3,39 +3,30 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '../../../lib/auth';
 import { drainStorageCleanup } from '../../../lib/storage';
-import { isInternalLink, isUploadPath, isUuid } from '../../../lib/validation';
+import { isInternalLink, isUuid, isMediaPath } from '../../../lib/validation';
 
-export async function createSlide(formData: FormData) {
+export async function saveSlide(id: string | null, formData: FormData) {
   const { supabase } = await requireAdmin();
   const title = String(formData.get('title') ?? '').trim();
   const text = String(formData.get('text') ?? '').trim();
-  const href = String(formData.get('href') ?? '/products').trim();
+  const href = String(formData.get('href') ?? '').trim();
   const imagePath = String(formData.get('imagePath') ?? '');
-  if (!title || title.length > 200 || text.length > 2000 || !isInternalLink(href) || !isUploadPath(imagePath)) {
-    return { error: 'Başlık, site içi bağlantı ve görseli kontrol edin.' };
-  }
-  const last = await supabase.from('slides').select('sort_order').order('sort_order', { ascending: false }).limit(1).maybeSingle();
-  if (last.error) return { error: 'Slayt sırası okunamadı.' };
-  const { error } = await supabase.from('slides').insert({ title, text, href, image_path: imagePath, sort_order: (last.data?.sort_order ?? -1) + 1 });
-  if (error) return { error: 'Slayt kaydedilemedi. Lütfen tekrar deneyin.' };
+  const orderText = String(formData.get('sortOrder') ?? '');
+  const order = Number(orderText);
+  if ((id !== null && !isUuid(id)) || !title || title.length > 200 || text.length > 2000 || !isInternalLink(href) ||
+    (!imagePath || !isMediaPath(imagePath)) || !/^\d+$/.test(orderText) || !Number.isSafeInteger(order) || order > 2147483647) return { error: 'Slayt bilgilerini kontrol edin.' };
+  const { error } = await supabase.rpc('save_slide', { slide_id: id, slide_title: title, slide_text: text, slide_href: href,
+    media_path: imagePath, display_order: order, active: formData.get('active') === 'on' });
+  if (error) return { error: 'Slayt kaydedilemedi. Görseli yeniden yükleyip tekrar deneyin.' };
+  await drainStorageCleanup(supabase).catch(() => undefined);
   revalidatePath('/', 'layout');
   return { error: '' };
 }
-
-export async function toggleSlide(id: string, isActive: boolean) {
-  const { supabase } = await requireAdmin();
-  if (!isUuid(id) || typeof isActive !== 'boolean') return { error: 'Geçersiz slayt.' };
-  const { error } = await supabase.from('slides').update({ is_active: isActive, updated_at: new Date().toISOString() }).eq('id', id);
-  if (error) return { error: 'Slayt güncellenemedi.' };
-  revalidatePath('/', 'layout');
-  return { error: '' };
-}
-
 export async function deleteSlide(id: string) {
   const { supabase } = await requireAdmin();
   if (!isUuid(id)) return { error: 'Geçersiz slayt.' };
-  const { error } = await supabase.from('slides').delete().eq('id', id);
-  if (error) return { error: 'Slayt silinemedi.' };
+  const { data, error } = await supabase.from('slides').delete().eq('id', id).select('id').maybeSingle();
+  if (error || !data) return { error: 'Slayt silinemedi veya zaten silinmiş. Listeyi yenileyin.' };
   await drainStorageCleanup(supabase).catch(() => undefined);
   revalidatePath('/', 'layout');
   return { error: '' };

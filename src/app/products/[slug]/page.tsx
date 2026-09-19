@@ -1,4 +1,4 @@
-import Image from "next/image";
+import ProductGallery from "../../../components/products/ProductGallery";
 import { notFound } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 import { getProductBySlug } from "../../../lib/catalog";
@@ -10,5 +10,5 @@ export default async function ProductDetail({ params }: { params: Promise<{ slug
 	const { slug } = await params;
 	const product = await getProductBySlug(slug);
 	if (!product) notFound();
-	return <main className="bg-[#f7f8f4] py-16"><div className="mx-auto grid max-w-6xl gap-12 px-5 lg:grid-cols-2 lg:px-8"><div className="overflow-hidden rounded-3xl bg-white"><Image src={product.image} alt={product.name} width={900} height={680} className="h-full min-h-[360px] w-full object-cover" /></div><div className="self-center"><p className="text-sm font-bold uppercase tracking-[0.15em] text-[#a5c63b]">{product.category}</p><h1 className="mt-4 text-4xl font-black text-[#174d32]">{product.name}</h1><p className="mt-3 text-gray-500">{product.brand}</p><p className="mt-8 leading-8 text-gray-600">{product.description}</p><p className="mt-8 text-3xl font-black text-gray-900">{formatPrice(product.price)}</p><WhatsAppLink title="WhatsApp ile bilgi al" message={`Merhaba, ${product.name} hakkında bilgi almak istiyorum.`} className="mt-8 inline-flex items-center gap-2 rounded-lg bg-[#174d32] px-6 py-3 font-bold text-white hover:bg-[#123d27]"><MessageCircle size={18} /> WhatsApp&apos;tan bilgi al</WhatsAppLink></div></div></main>;
+	return <main className="bg-[#f7f8f4] py-16"><div className="mx-auto grid max-w-6xl gap-12 px-5 lg:grid-cols-2 lg:px-8"><ProductGallery images={product.images ?? [product.image]} name={product.name} /><div className="self-center"><p className="text-sm font-bold uppercase tracking-[0.15em] text-[#a5c63b]">{product.category}</p><h1 className="mt-4 text-4xl font-black text-[#174d32]">{product.name}</h1><p className="mt-3 text-gray-500">{product.brand}</p><p className="mt-8 leading-8 text-gray-600">{product.description}</p><p className="mt-8 text-3xl font-black text-gray-900">{formatPrice(product.price)}</p><WhatsAppLink title="WhatsApp ile bilgi al" message={`Merhaba, ${product.name} hakkında bilgi almak istiyorum.`} className="mt-8 inline-flex items-center gap-2 rounded-lg bg-[#174d32] px-6 py-3 font-bold text-white hover:bg-[#123d27]"><MessageCircle size={18} /> WhatsApp&apos;tan bilgi al</WhatsAppLink></div></div></main>;
 }

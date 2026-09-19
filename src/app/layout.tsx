@@ -1,3 +1,4 @@
+import { getCategories } from '../lib/catalog';
 import { getCompanySettings } from "../lib/settings";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -18,13 +19,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Gezer Tarım Market | Tarımın Güvenilir Adresi",
-  description: "Tohum, gübre, zirai ilaç, tarım aletleri ve profesyonel servis hizmetleri.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getCompanySettings();
+  return { title: `${settings.companyName} | Tarımın Güvenilir Adresi`, description: 'Tohum, gübre, zirai ilaç, tarım aletleri ve profesyonel servis hizmetleri.' };
+}
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const settings = await getCompanySettings();
+  const [settings, categories] = await Promise.all([getCompanySettings(), getCategories()]);
   let userName: string | undefined;
   let userEmail: string | undefined;
   let isAdmin = false;
@@ -49,9 +50,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <CompanySettingsProvider settings={settings}>
           <CartProvider>
-          <Navbar isAdmin={isAdmin} userName={userName} userEmail={userEmail} />
+          <Navbar isAdmin={isAdmin} userName={userName} userEmail={userEmail} categories={categories} />
           {children}
-          <Footer />
+          <Footer categories={categories} />
           </CartProvider>
         </CompanySettingsProvider>
         </body>

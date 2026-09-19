@@ -100,13 +100,7 @@ create policy "Admins manage slides" on public.slides for all using (public.is_a
 create policy "Users read own profile" on public.profiles for select using (auth.uid() = id or public.is_admin());
 create policy "Users update own profile" on public.profiles for update using (auth.uid() = id) with check (auth.uid() = id);
 
-insert into public.categories (name, slug, sort_order) values
-  ('Tohum', 'tohum', 1),
-  ('Gübre', 'gubre', 2),
-  ('Zirai İlaç', 'zirai-ilac', 3),
-  ('Tarım Aletleri', 'tarim-aletleri', 4),
-  ('Peyzaj', 'peyzaj', 5)
-on conflict (slug) do nothing;
+
 
 insert into storage.buckets (id, name, public) values
   ('product-images', 'product-images', true),

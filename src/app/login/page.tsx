@@ -27,7 +27,7 @@ export default function LoginPage() {
             </p>
           </Link>
           <h3 className="mt-6 text-xl font-bold text-gray-900">
-            Hesabınıza giriş yapın
+            Yönetici girişi
           </h3>
         </div>
 
@@ -93,13 +93,7 @@ export default function LoginPage() {
           </div>
         </form>
 
-        {/* Kayıt Ol Linki */}
-        <p className="text-center text-sm text-gray-600">
-          Hesabınız yok mu?{' '}
-          <Link href="/register" className="font-medium text-[#174d32] hover:underline">
-            Kayıt olun
-          </Link>
-        </p>
+        <p className="text-center text-sm text-gray-600">Hesap erişimi için site sorumlusuyla iletişime geçin.</p>
 
       </div>
     </div>

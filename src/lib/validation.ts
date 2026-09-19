@@ -17,11 +17,11 @@ export function validateProduct(form: FormData) {
   const description = String(form.get('description') ?? '').trim();
   const category = String(form.get('categorySlug') ?? '').trim();
   const priceText = String(form.get('price') ?? '').trim();
-  const price = Number(priceText);
+  const price = priceText === '' ? null : Number(priceText);
   const images = form.getAll('imagePath').map(String);
   if (!name || name.length > 200 || brand.length > 120 || description.length > 10000 || !category ||
-      !/^\d+(\.\d{1,2})?$/.test(priceText) || !Number.isFinite(price) || price < 0 || price > 9999999999.99 ||
-      images.length > 10 || images.some((path) => !isUploadPath(path)) || new Set(images).size !== images.length) {
+      (price !== null && (!/^\d+(\.\d{1,2})?$/.test(priceText) || !Number.isFinite(price) || price < 0 || price > 9999999999.99)) ||
+      images.length > 10 || images.some((path) => !isMediaPath(path)) || new Set(images).size !== images.length) {
     return { error: 'Ürün bilgilerini, fiyatı ve görselleri kontrol edin.' } as const;
   }
   return { value: { product_name: name, product_brand: brand, product_description: description,
@@ -30,5 +30,9 @@ export function validateProduct(form: FormData) {
 }
 
 export function isInternalLink(value: string) {
-  return value.startsWith('/') && !value.startsWith('//') && !/[\\\s\u0000-\u001f]/.test(value);
+  return value.length <= 2048 && value.startsWith('/') && !value.startsWith('//') && !/[\\\s\u0000-\u001f]/.test(value);
+}
+
+export function isMediaPath(path: string) {
+  return path.length <= 1024 && /^[a-zA-Z0-9][a-zA-Z0-9/_.-]*$/.test(path) && !path.split('/').some((part) => part === '..' || part === '.' || part === '');
 }

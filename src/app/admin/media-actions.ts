@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '../../lib/auth';
 import { drainStorageCleanup } from '../../lib/storage';
 import { isUploadPath } from '../../lib/validation';
@@ -21,4 +22,13 @@ export async function abandonUploads(bucket: string, paths: string[]) {
   const { error } = await supabase.from('storage_cleanup').update({ ready_at: new Date().toISOString() }).eq('bucket', bucket).in('path', paths);
   if (error) throw new Error('Görsel temizliği ertelendi.');
   await drainStorageCleanup(supabase);
+}
+
+export async function retryCleanup() {
+  const { supabase } = await requireAdmin();
+  try {
+    const { failed } = await drainStorageCleanup(supabase);
+    revalidatePath('/admin');
+    return { message: failed ? `${failed} görsel temizlenemedi; yeniden deneyebilirsiniz.` : 'Bir grup işlendi. Bekleyen kayıt varsa yeniden çalıştırın.' };
+  } catch { return { message: 'Temizlik yapılamadı. Lütfen tekrar deneyin.' }; }
 }

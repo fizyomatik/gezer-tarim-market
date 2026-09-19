@@ -1,1 +1,41 @@
-export default function AboutPage() { return <main className="bg-[#f7f8f4] py-20"><div className="mx-auto max-w-4xl px-5 lg:px-8"><span className="text-sm font-bold tracking-[0.2em] text-[#a5c63b]">BİZ KİMİZ?</span><h1 className="mt-4 text-4xl font-black text-[#174d32] md:text-6xl">Tarımın yanında büyüyen bir aile.</h1><div className="mt-8 space-y-6 text-lg leading-8 text-gray-600"><p>Gezer Tarım Market, üreticilerin günlük ihtiyaçlarına güvenilir ve anlaşılır çözümler sunmak için burada. Tohumdan gübreye, tarım aletlerinden makine servisine kadar geniş bir alanda çalışıyoruz.</p><p>Amacımız yalnızca ürün satmak değil; doğru ürünü seçmeniz, makinenizi verimli kullanmanız ve sezon boyunca yanınızda olmak.</p></div><div className="mt-12 grid gap-5 sm:grid-cols-3"><div className="rounded-2xl bg-[#174d32] p-6 text-white"><strong className="text-3xl text-[#a5c63b]">01</strong><p className="mt-4 font-bold">Doğru ürün</p></div><div className="rounded-2xl bg-white p-6"><strong className="text-3xl text-[#174d32]">02</strong><p className="mt-4 font-bold">Uzman destek</p></div><div className="rounded-2xl bg-white p-6"><strong className="text-3xl text-[#174d32]">03</strong><p className="mt-4 font-bold">Sürekli iletişim</p></div></div></div></main>; }
+import { getCompanySettings } from "../../lib/settings";
+export default async function AboutPage() {
+  const settings = await getCompanySettings();
+  return (
+    <main className="bg-[#f7f8f4] py-20">
+      <div className="mx-auto max-w-4xl px-5 lg:px-8">
+        <span className="text-sm font-bold tracking-[0.2em] text-[#a5c63b]">
+          BİZ KİMİZ?
+        </span>
+        <h1 className="mt-4 text-4xl font-black text-[#174d32] md:text-6xl">
+          Tarımın yanında büyüyen bir aile.
+        </h1>
+        <div className="mt-8 space-y-6 text-lg leading-8 text-gray-600">
+          <p>
+            {settings.companyName}, üreticilerin günlük ihtiyaçlarına güvenilir
+            ve anlaşılır çözümler sunmak için burada. Tohumdan gübreye, tarım
+            aletlerinden makine servisine kadar geniş bir alanda çalışıyoruz.
+          </p>
+          <p>
+            Amacımız yalnızca ürün satmak değil; doğru ürünü seçmeniz,
+            makinenizi verimli kullanmanız ve sezon boyunca yanınızda olmak.
+          </p>
+        </div>
+        <div className="mt-12 grid gap-5 sm:grid-cols-3">
+          <div className="rounded-2xl bg-[#174d32] p-6 text-white">
+            <strong className="text-3xl text-[#a5c63b]">01</strong>
+            <p className="mt-4 font-bold">Doğru ürün</p>
+          </div>
+          <div className="rounded-2xl bg-white p-6">
+            <strong className="text-3xl text-[#174d32]">02</strong>
+            <p className="mt-4 font-bold">Uzman destek</p>
+          </div>
+          <div className="rounded-2xl bg-white p-6">
+            <strong className="text-3xl text-[#174d32]">03</strong>
+            <p className="mt-4 font-bold">Sürekli iletişim</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}

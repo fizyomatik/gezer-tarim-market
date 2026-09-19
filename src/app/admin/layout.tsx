@@ -1,12 +1,10 @@
 import Link from 'next/link';
 import { LayoutDashboard, Package, LogOut, Settings } from 'lucide-react';
 import { handleLogout } from '../actions';
-import { drainStorageCleanup } from '../../lib/storage';
 import { requireAdmin } from '../../lib/auth';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { supabase } = await requireAdmin();
-  await drainStorageCleanup(supabase).catch(() => undefined);
+  await requireAdmin();
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -28,6 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/products" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#174d32] transition">
             <Package size={18} /> Ürün Yönetimi
           </Link>
+          <Link href="/admin/categories" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"><Package size={18} /> Kategoriler</Link>
           <Link href="/admin/slides" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#174d32] transition">
             <Package size={18} /> Slayt Yönetimi
           </Link>
@@ -60,7 +59,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </header>
 
         {/* Dynamic Page Content */}
-        <nav className="flex flex-wrap gap-4 p-4 md:hidden" aria-label="Yönetim"><Link href="/admin">Panel</Link><Link href="/admin/products">Ürünler</Link><Link href="/admin/slides">Slaytlar</Link><Link href="/admin/settings">Ayarlar</Link></nav>
+        <nav className="flex flex-wrap gap-4 p-4 md:hidden" aria-label="Yönetim"><Link href="/admin">Panel</Link><Link href="/admin/products">Ürünler</Link><Link href="/admin/categories">Kategoriler</Link><Link href="/admin/slides">Slaytlar</Link><Link href="/admin/settings">Ayarlar</Link><form action={handleLogout}><button className="text-red-700">Çıkış yap</button></form></nav>
         <main className="p-4 md:p-8 flex-1">{children}</main>
       </div>
     </div>

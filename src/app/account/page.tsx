@@ -1,13 +1,2 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { handleLogout, updatePassword, updateProfile } from "../actions";
-import { createSupabaseServerClient } from "../../lib/supabase/server";
-
-export default async function AccountPage() {
-    const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect('/login');
-    const { data: profile } = await supabase.from('profiles').select('full_name, address, role').eq('id', user.id).single();
-
-    return <main className="min-h-[60vh] bg-[#f7f8f4] py-16"><div className="mx-auto max-w-3xl space-y-8 px-5 lg:px-8"><div><span className="text-sm font-bold uppercase tracking-[0.15em] text-[#a5c63b]">HESABIM</span><h1 className="mt-3 text-4xl font-black text-[#174d32]">Hesap ayarları</h1></div><section className="rounded-2xl border border-gray-200 bg-white p-7"><p className="text-sm text-gray-500">{user.email}</p><form action={updateProfile} className="mt-6 space-y-4"><label className="block text-sm font-semibold text-gray-700">Ad Soyad<input name="name" required defaultValue={profile?.full_name ?? ''} className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2.5" /></label><label className="block text-sm font-semibold text-gray-700">Adres<textarea name="address" defaultValue={profile?.address ?? ''} className="mt-1 min-h-28 w-full rounded-lg border border-gray-200 px-3 py-2.5" /></label><button className="rounded-lg bg-[#174d32] px-5 py-3 font-bold text-white">Bilgileri güncelle</button></form></section><section className="rounded-2xl border border-gray-200 bg-white p-7"><h2 className="text-xl font-black text-[#174d32]">Şifreyi güncelle</h2><form action={updatePassword} className="mt-5 flex flex-wrap gap-3"><input name="password" required minLength={6} type="password" placeholder="Yeni şifre" className="min-w-64 flex-1 rounded-lg border border-gray-200 px-3 py-2.5" /><button className="rounded-lg border border-[#174d32] px-5 py-3 font-bold text-[#174d32]">Şifreyi değiştir</button></form></section><div className="flex flex-wrap gap-3">{profile?.role === 'admin' && <Link href="/admin" className="rounded-lg bg-[#174d32] px-5 py-3 font-bold text-white">Admin Paneli</Link>}<form action={handleLogout}><button type="submit" className="rounded-lg border border-red-200 px-5 py-3 font-bold text-red-600">Çıkış yap</button></form></div></div></main>;
-}
+import { redirect } from 'next/navigation';
+export default function Page() { redirect('/login'); }

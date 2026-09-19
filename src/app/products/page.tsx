@@ -1,8 +1,7 @@
-import ProductsCatalog from "../../components/products/ProductsCatalog";
-import { getProducts } from "../../lib/catalog";
-
-export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ q?: string; category?: string }> }) {
-	const params = await searchParams;
-	const products = await getProducts();
-	return <ProductsCatalog key={`${params.q ?? ""}:${params.category ?? ""}`} products={products} initialQuery={params.q ?? ""} category={params.category ?? ""} />;
+import ProductsCatalog from '../../components/products/ProductsCatalog';
+import { getProducts, getCategories } from '../../lib/catalog';
+export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[]; category?: string | string[] }> }) {
+  const params = await searchParams;
+  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
+  return <ProductsCatalog products={products} categories={categories} initialQuery={typeof params.q === 'string' ? params.q : ''} category={typeof params.category === 'string' ? params.category : ''} />;
 }

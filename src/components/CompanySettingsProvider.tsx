@@ -11,4 +11,4 @@ export function useCompanySettings() {
   const context = useContext(CompanySettingsContext);
   if (!context) throw new Error('CompanySettingsProvider is required');
   return context;
-}
+} 

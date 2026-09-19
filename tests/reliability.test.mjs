@@ -13,7 +13,7 @@ test('cart totals, badge and inquiry all account for quantities without floating
   const items = [product, { ...product, id: 'q', name: 'Gübre', price: 0.2, quantity: 2 }];
   assert.equal(cartTotal(items), 0.7);
   assert.equal(cartCount(items), 5);
-  assert.match(cartMessage(items), /Tohum \(3 adet\).*Gübre \(2 adet\)/);
+  assert.match(cartMessage(items), /Tohum \(3 adet\)[\s\S]*Gübre \(2 adet\)/);
 });
 test('corrupt or invalid persisted carts do not crash or introduce negative quantities', () => {
   for (const raw of ['{', '{}', 'null', JSON.stringify([{ ...product, quantity: -1 }]), JSON.stringify([{ ...product, price: '100' }])]) {
@@ -30,7 +30,8 @@ test('product validation preserves category/status and rejects malformed data on
   for (const [key, value] of Object.entries({ name: 'Tohum', price: '12.50', categorySlug: 'tohum', active: 'on', featured: 'on' })) form.set(key, value);
   assert.equal(validateProduct(form).value.category_slug, 'tohum');
   assert.equal(validateProduct(form).value.active, true);
-  for (const price of ['', '-1', 'NaN', '1.234', '1e10', '10000000000']) { form.set('price', price); assert.ok(validateProduct(form).error); }
+  form.set('price', ''); assert.equal(validateProduct(form).value.product_price, null);
+  for (const price of ['-1', 'NaN', '1.234', '1e10', '10000000000']) { form.set('price', price); assert.ok(validateProduct(form).error); }
   form.set('price', '12.50'); form.append('imagePath', '../../private'); assert.ok(validateProduct(form).error);
 });
 test('links and shared contact details reject executable URLs and invalid phone data', () => {
@@ -46,6 +47,7 @@ function storageMock({ referenced = false, removeFails = false, queryFails = fal
   const removed = []; const cleared = [];
   return {
     removed, cleared,
+    rpc: async () => ({ data: [{ bucket: 'product-images', path: 'old.jpg' }], error: null }),
     from(table) {
       if (table === 'storage_cleanup') return {
         select: () => ({ lte: () => ({ limit: async () => ({ data: [{ bucket: 'product-images', path: 'old.jpg' }], error: null }) }) }),
@@ -88,4 +90,24 @@ test('proxy invokes auth refresh and forwards refreshed cookies to both renderin
   assert.equal(responseCookies.get('token').value, 'refreshed');
   assert.equal(responseCookies.get('token').options.httpOnly, true);
   assert.equal(response.headers.get('Cache-Control'), 'private, no-store');
+});
+
+
+test('optional prices remain unknown, while zero is a valid price', () => {
+  const unpriced = { ...product, price: null };
+  assert.equal(cartTotal([unpriced, product]), null);
+  assert.equal(cartTotal([{ ...product, price: 0 }]), 0);
+  assert.equal(restoreCart(JSON.stringify([unpriced]))[0].price, null);
+  assert.match(cartMessage([product], 'https://shop.example'), /https:\/\/shop.example\/products\/p/);
+});
+test('site-media cleanup checks both slides and categories before removing a file', async () => {
+  const client = storageMock();
+  client.rpc = async () => ({ data: [{ bucket: 'site-media', path: 'category.jpg' }], error: null });
+  const originalFrom = client.from;
+  client.from = (table) => table === 'categories'
+    ? { select: () => ({ eq: () => ({ limit: async () => ({ data: [{ id: 'category' }], error: null }) }) }) }
+    : originalFrom(table);
+  await drainStorageCleanup(client);
+  assert.deepEqual(client.removed, []);
+  assert.equal(client.cleared.length, 1);
 });
